@@ -14,6 +14,11 @@ const Navbar = () => {
   const [wasPlayingBeforeHidden, setWasPlayingBeforeHidden] = useState(false);
   const navContainerRef = useRef(null);
   const audioElementRef = useRef(null);
+  const uiSoundRef = useRef(null);
+
+  useEffect(() => {
+    window.isAudioEnabled = isAudioPlaying;
+  }, [isAudioPlaying]);
 
   const {y: currentScrollY} = useWindowScroll();
 
@@ -38,6 +43,16 @@ const Navbar = () => {
       duration: 0.2,
     })
   } , [isNavVisible])
+
+  const playUISound = () => {
+    if (uiSoundRef.current && window.isAudioEnabled) {
+      uiSoundRef.current.currentTime = 0;
+      uiSoundRef.current.play().catch(error => {
+        console.log("UI sound failed to play:", error);
+      });
+    }
+  };
+
   const toggleAudioIndicator = () => {
     setIsAudioPlaying((prev) => !prev);
       setIsIndicatorActive((prev) => !prev);
@@ -126,7 +141,8 @@ const Navbar = () => {
                 <a
                   key={item}
                   href={`#${item.toLowerCase()}`}
-                  className="nav-hover-btn "
+                  className="nav-hover-btn"
+                  onMouseEnter={playUISound}
                 >
                   {item}
                 </a>
@@ -142,6 +158,12 @@ const Navbar = () => {
                 className="hidden"
                 src="/audio/loop.mp3"
                 loop
+                preload="auto"
+              />
+              <audio 
+                ref={uiSoundRef}
+                className="hidden"
+                src="/audio/ui.mp3"
                 preload="auto"
               />
 

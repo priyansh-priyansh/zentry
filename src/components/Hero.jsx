@@ -13,13 +13,31 @@ const Hero = () => {
   const [loadedVideos, setLoadedVideos] = useState(0);
 
   const totalVideos = 4;
-  const nextVideoref = useRef(null);
+  const videoContainerRef = useRef(null);
+  const currentVideoRef = useRef(null);
+  const nextVideoRef = useRef(null);
+  const whooshSoundRef = useRef(null);
+
   const handelVideoLoad = () => {
     setLoadedVideos((prev) => prev + 1);
   };
 
   const upcomingVideoIndex = (currentIndex % totalVideos) + 1;
   const handleMiniVdClick = () => {
+    if (!nextVideoRef.current || !currentVideoRef.current) return;
+    
+    // Play whoosh sound only if audio is enabled
+    if (whooshSoundRef.current && window.isAudioEnabled) {
+      whooshSoundRef.current.currentTime = 0; // Reset sound to start
+      whooshSoundRef.current.play().catch(error => {
+        console.log("Whoosh sound failed to play:", error);
+      });
+    }
+    
+    // Ensure next video is ready to play
+    nextVideoRef.current.currentTime = 0;
+    nextVideoRef.current.play().catch(() => {});
+    
     setHasClicked(true);
     setCurrentIndex(upcomingVideoIndex);
   };
@@ -42,7 +60,7 @@ const Hero = () => {
           height: "100%",
           duration: 1,
           ease: "power1.inOut",
-          onStart: () => nextVideoref.current.play(),
+          onStart: () => nextVideoRef.current.play(),
         });
 
         gsap.from("#current-video", {
@@ -90,6 +108,12 @@ const Hero = () => {
         id="video-frame"
         className="relative z-10 h-dvh w-screen overflow-hidden rounded-lg bg-blue-75"
       >
+        <audio 
+          ref={whooshSoundRef}
+          src="/audio/whoosh.mp3"
+          preload="auto"
+          className="hidden"
+        />
         <div>
           <div className="mask-clip-path absolute-center absolute z-50 size-64 cursor-pointer overflow-hidden rounded-lg">
             <div
@@ -97,7 +121,7 @@ const Hero = () => {
               className="origin-center scale-50 opacity-0 transition-all duration-500 ease-in hover:100 hover:opacity-100"
             >
               <video
-                ref={nextVideoref}
+                ref={nextVideoRef}
                 src={getVideoSrc(upcomingVideoIndex)}
                 loop
                 muted
@@ -109,7 +133,7 @@ const Hero = () => {
           </div>
 
           <video
-            ref={nextVideoref}
+            ref={currentVideoRef}
             src={getVideoSrc(currentIndex)}
             loop
             muted
