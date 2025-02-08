@@ -47,9 +47,19 @@ const Navbar = () => {
   const playUISound = () => {
     if (uiSoundRef.current && window.isAudioEnabled) {
       uiSoundRef.current.currentTime = 0;
-      uiSoundRef.current.play().catch(error => {
-        console.log("UI sound failed to play:", error);
-      });
+      
+      // Play only first second
+      const playPromise = uiSoundRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise.then(() => {
+          setTimeout(() => {
+            uiSoundRef.current.pause();
+            uiSoundRef.current.currentTime = 0;
+          }, 1000); // Stop after 1 second
+        }).catch(error => {
+          console.log("UI sound failed to play:", error);
+        });
+      }
     }
   };
 

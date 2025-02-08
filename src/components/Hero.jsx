@@ -11,6 +11,8 @@ const Hero = () => {
   const [hasClicked, setHasClicked] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [loadedVideos, setLoadedVideos] = useState(0);
+  const [showPreview, setShowPreview] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   const totalVideos = 4;
   const videoContainerRef = useRef(null);
@@ -23,15 +25,33 @@ const Hero = () => {
   };
 
   const upcomingVideoIndex = (currentIndex % totalVideos) + 1;
+
+  const playWhooshSound = () => {
+    if (whooshSoundRef.current && window.isAudioEnabled) {
+      whooshSoundRef.current.currentTime = 0;
+      const playPromise = whooshSoundRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise.then(() => {
+          setTimeout(() => {
+            whooshSoundRef.current.pause();
+            whooshSoundRef.current.currentTime = 0;
+          }, 1000);
+        }).catch(error => {
+          console.log("Whoosh sound failed to play:", error);
+        });
+      }
+    }
+  };
+
   const handleMiniVdClick = () => {
     if (!nextVideoRef.current || !currentVideoRef.current) return;
     
-    // Play whoosh sound only if audio is enabled
-    if (whooshSoundRef.current && window.isAudioEnabled) {
-      whooshSoundRef.current.currentTime = 0; // Reset sound to start
-      whooshSoundRef.current.play().catch(error => {
-        console.log("Whoosh sound failed to play:", error);
-      });
+    // Play whoosh sound
+    playWhooshSound();
+    
+    // Hide preview on mobile
+    if (isMobile) {
+      setShowPreview(false);
     }
     
     // Ensure next video is ready to play
@@ -47,6 +67,14 @@ const Hero = () => {
       setIsLoading(false);
     }
   }, [loadedVideos]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useGSAP(
     () => {
@@ -92,6 +120,7 @@ const Hero = () => {
       },
     });
   });
+
   const getVideoSrc = (index) => `videos/hero-${index}.mp4`;
   return (
     <div className="relative h-dvh w-screen overflow-x-hidden">
@@ -118,13 +147,20 @@ const Hero = () => {
           <div className="mask-clip-path absolute-center absolute z-50 size-64 cursor-pointer overflow-hidden rounded-lg">
             <div
               onClick={handleMiniVdClick}
-              className="origin-center scale-50 opacity-0 transition-all duration-500 ease-in hover:100 hover:opacity-100"
+              onTouchStart={() => isMobile && setShowPreview(true)}
+              onTouchEnd={() => isMobile && setShowPreview(false)}
+              className={`origin-center md:hover:scale-100 md:hover:opacity-100 transition-all duration-500 ease-in ${
+                isMobile 
+                  ? showPreview ? 'scale-100 opacity-100' : 'scale-50 opacity-0'
+                  : 'scale-50 opacity-0'
+              }`}
             >
               <video
                 ref={nextVideoRef}
                 src={getVideoSrc(upcomingVideoIndex)}
                 loop
                 muted
+                autoPlay
                 id="current-video"
                 className="size-64 object-center object-cover scale-150 origin-center rounded-lg"
                 onLoadedData={handelVideoLoad}
@@ -137,6 +173,7 @@ const Hero = () => {
             src={getVideoSrc(currentIndex)}
             loop
             muted
+            autoPlay
             id="next-video"
             className="absolute-center invisible absolute z-20 size-64 object-cover object-center"
             onLoadedData={handelVideoLoad}

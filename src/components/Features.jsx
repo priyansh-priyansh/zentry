@@ -1,8 +1,41 @@
 import {TiLocationArrow} from "react-icons/ti";
-import {useRef, useState} from "react";
+import {useRef, useState, useEffect} from "react";
+
 const BentoTilt = ({children , className = ''}) => {
     const [transformStyle, setTransformStyle] = useState('');
     const itemRef = useRef();
+    const uiSoundRef = useRef(null);
+
+    useEffect(() => {
+        // Create audio element once
+        const audio = new Audio('/audio/ui.mp3');
+        audio.preload = 'auto';
+        uiSoundRef.current = audio;
+        
+        return () => {
+            if (uiSoundRef.current) {
+                uiSoundRef.current.pause();
+            }
+        };
+    }, []);
+
+    const playUISound = () => {
+        if (uiSoundRef.current && window.isAudioEnabled) {
+            uiSoundRef.current.currentTime = 7.6; // Start at 7 seconds
+            const playPromise = uiSoundRef.current.play();
+            if (playPromise !== undefined) {
+                playPromise.then(() => {
+                    setTimeout(() => {
+                        uiSoundRef.current.pause();
+                        uiSoundRef.current.currentTime = 7.6; // Reset to 7 seconds
+                    }, 1000); // Play for 1 second
+                }).catch(error => {
+                    console.log("UI sound failed to play:", error);
+                });
+            }
+        }
+    };
+
     const handelMouseMove = (e) => {
         if(!itemRef.current) return;
         const {left , top , width , height} = itemRef.current.getBoundingClientRect();
@@ -11,17 +44,31 @@ const BentoTilt = ({children , className = ''}) => {
         const titltX = (relativeY - 0.5) * 5;
         const titltY = (relativeX - 0.5) * -5;
         const newTransform = `perspective(700px) rotateX(${titltX}deg) rotateY(${titltY}deg) scale3d(0.98,0.98,0.98)`;
-        setTransformStyle(newTransform)
+        setTransformStyle(newTransform);
     }
+
     const handelMouseLeave = () => {
         setTransformStyle('');
     }
+
+    const handelMouseEnter = () => {
+        playUISound();
+    }
+
     return (
-        <div className={className} ref={itemRef} onMouseMove={handelMouseMove} onMouseLeave={handelMouseLeave} style={{transform: transformStyle}}>
+        <div 
+            className={`${className} [cursor:grab]`} 
+            ref={itemRef} 
+            onMouseMove={handelMouseMove} 
+            onMouseLeave={handelMouseLeave}
+            onMouseEnter={handelMouseEnter}
+            style={{transform: transformStyle}}
+        >
             {children}
         </div>
     )
 }
+
 const BentoCard = ({src , title , description}) => {
     return (
         <div className="relative size-full ">
