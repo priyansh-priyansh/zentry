@@ -10,24 +10,25 @@ const Navbar = () => {
   const [isIndicatorActive, setIsIndicatorActive] = useState(false);
   const [lastScrollY, setLastScrollY] = useState(0);
   const [isNavVisible, setIsNavVisible] = useState(true);
+  const [hasUserInteracted, setHasUserInteracted] = useState(false);
   const navContainerRef = useRef(null);
   const audioElementRef = useRef(null);
 
   const {y: currentScrollY} = useWindowScroll();
 
   useEffect(() => {
-        if(currentScrollY === 0) {
-          setIsNavVisible(true);
-          navContainerRef.current.classList.remove('floating-nav');
-        } else if (currentScrollY > lastScrollY) {
-          setIsNavVisible(false);
-          navContainerRef.current.classList.add('floating-nav');
+    if(currentScrollY === 0) {
+      setIsNavVisible(true);
+      navContainerRef.current?.classList.remove('floating-nav');
+    } else if (currentScrollY > lastScrollY) {
+      setIsNavVisible(false);
+      navContainerRef.current?.classList.add('floating-nav');
     } else if (currentScrollY < lastScrollY) {
-          setIsNavVisible(true);
-          navContainerRef.current.classList.add('floating-nav');
-        }
-        setLastScrollY(currentScrollY);
-  }, [currentScrollY , lastScrollY]);
+      setIsNavVisible(true);
+      navContainerRef.current?.classList.add('floating-nav');
+    }
+    setLastScrollY(currentScrollY);
+  }, [currentScrollY, lastScrollY]);
 
   useEffect(() => {
     gsap.to(navContainerRef.current, {
@@ -42,12 +43,40 @@ const Navbar = () => {
   };
 
   useEffect(() => {
-        if(isAudioPlaying) {
-            audioElementRef.current.play();
-        } else {
-            audioElementRef.current.pause();
+    const handleGlobalClick = async () => {
+      if (!hasUserInteracted) {
+        try {
+          setHasUserInteracted(true);
+          await audioElementRef.current.play();
+          setIsAudioPlaying(true);
+          setIsIndicatorActive(true);
+        } catch (error) {
+          console.log("Audio autoplay failed:", error);
         }
-  } , [isAudioPlaying]);
+      }
+    };
+
+    window.addEventListener('click', handleGlobalClick);
+    return () => window.removeEventListener('click', handleGlobalClick);
+  }, [hasUserInteracted]);
+
+  useEffect(() => {
+    const handleAudio = async () => {
+      try {
+        if (isAudioPlaying) {
+          await audioElementRef.current?.play();
+        } else {
+          audioElementRef.current?.pause();
+        }
+      } catch (error) {
+        console.log("Audio playback failed:", error);
+        setIsAudioPlaying(false);
+        setIsIndicatorActive(false);
+      }
+    };
+    handleAudio();
+  }, [isAudioPlaying]);
+
   return (
     <div
       ref={navContainerRef}
@@ -86,6 +115,7 @@ const Navbar = () => {
                 className="hidden"
                 src="/audio/loop.mp3"
                 loop
+                preload="auto"
               />
 
                 {[1, 2, 3, 4].map((bar) => (
