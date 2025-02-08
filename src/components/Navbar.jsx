@@ -11,6 +11,7 @@ const Navbar = () => {
   const [lastScrollY, setLastScrollY] = useState(0);
   const [isNavVisible, setIsNavVisible] = useState(true);
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
+  const [wasPlayingBeforeHidden, setWasPlayingBeforeHidden] = useState(false);
   const navContainerRef = useRef(null);
   const audioElementRef = useRef(null);
 
@@ -76,6 +77,32 @@ const Navbar = () => {
     };
     handleAudio();
   }, [isAudioPlaying]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // Tab is hidden, store current playing state and pause
+        setWasPlayingBeforeHidden(isAudioPlaying);
+        if (isAudioPlaying) {
+          audioElementRef.current?.pause();
+          setIsAudioPlaying(false);
+          setIsIndicatorActive(false);
+        }
+      } else {
+        // Tab is visible again, resume if it was playing before
+        if (wasPlayingBeforeHidden && hasUserInteracted) {
+          audioElementRef.current?.play().catch(error => {
+            console.log("Audio resume failed:", error);
+          });
+          setIsAudioPlaying(true);
+          setIsIndicatorActive(true);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isAudioPlaying, wasPlayingBeforeHidden, hasUserInteracted]);
 
   return (
     <div
